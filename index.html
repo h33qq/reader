@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Comic Reader</title>
+    <script src="https://telegram.org"></script>
+    <script src="https://cloudflare.com"></script>
+    <style>
+        body { margin: 0; background-color: #1a1a1a; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; }
+        #status { margin: 20px; font-size: 16px; text-align: center; }
+        #viewer { width: 100%; max-width: 800px; display: flex; flex-direction: column; }
+        #viewer img { width: 100%; height: auto; display: block; margin-bottom: 2px; }
+    </style>
+</head>
+<body>
+    <div id="status">Загрузка читалки...</div>
+    <div id="viewer"></div>
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+        const urlParams = new URLSearchParams(window.location.search);
+        const fileUrl = urlParams.get('file'); 
+        const statusDiv = document.getElementById('status');
+        const viewerDiv = document.getElementById('viewer');
+
+        if (!fileUrl) {
+            statusDiv.innerText = "Файл не найден. Откройте читалку через бота.";
+        } else {
+            loadComic(fileUrl);
+        }
+
+        async function loadComic(url) {
+            try {
+                statusDiv.innerText = "Скачивание комикса...";
+                const response = await fetch(url);
+                if (!response.ok) throw new Error("Не удалось скачать файл");
+                const blob = await response.blob();
+                statusDiv.innerText = "Распаковка страниц...";
+                const zip = await JSZip.loadAsync(blob);
+                const fileNames = Object.keys(zip.files)
+                    .filter(name => name.match(/\.(jpg|jpeg|png|webp)$/i))
+                    .sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
+                statusDiv.style.display = 'none';
+                for (const name of fileNames) {
+                    const fileData = await zip.files[name].async("blob");
+                    const imgUrl = URL.createObjectURL(fileData);
+                    const img = document.createElement('img');
+                    img.src = imgUrl;
+                    img.loading = "lazy";
+                    viewerDiv.appendChild(img);
+                }
+            } catch (error) {
+                statusDiv.innerText = "Ошибка: " + error.message;
+            }
+        }
+    </script>
+</body>
+</html>
