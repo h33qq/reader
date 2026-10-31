@@ -35,5 +35,4 @@ async def handle_comic(message: types.Message):
 async def main():
     await dp.start_polling(bot)
 
-if name == "main":
-    asyncio.run(main())
+asyncio.run(main())
